@@ -50,6 +50,7 @@ WINDOW_HEIGHT = 720
 -- virtual resolution dimensions
 VIRTUAL_WIDTH = 512
 VIRTUAL_HEIGHT = 288
+IS_PAUSED = false
 
 local background = love.graphics.newImage('background.png')
 local backgroundScroll = 0
@@ -127,6 +128,10 @@ function love.keypressed(key)
 
     if key == 'escape' then
         love.event.quit()
+    elseif key == 'v' and IS_PAUSED == false then
+        IS_PAUSED = true
+    elseif key == 'v' and IS_PAUSED == true then
+        IS_PAUSED = false
     end
 end
 
@@ -155,11 +160,12 @@ end
 
 function love.update(dt)
     -- scroll our background and ground, looping back to 0 after a certain amount
+    if IS_PAUSED == false then
     backgroundScroll = (backgroundScroll + BACKGROUND_SCROLL_SPEED * dt) % BACKGROUND_LOOPING_POINT
     groundScroll = (groundScroll + GROUND_SCROLL_SPEED * dt) % VIRTUAL_WIDTH
+
     gStateMachine:update(dt)
-
-
+    end
     love.keyboard.keysPressed = {}
     love.mouse.buttonsPressed = {}
 end

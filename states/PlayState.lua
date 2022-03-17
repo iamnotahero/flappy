@@ -7,9 +7,8 @@
     avoids pipes. When the player collides with a pipe, we should go to the GameOver state, where
     we then go back to the main menu.
 ]]
-
 PlayState = Class{__includes = BaseState}
-
+require 'PipePair'
 PIPE_SPEED = 60
 PIPE_WIDTH = 70
 PIPE_HEIGHT = 288
@@ -17,28 +16,74 @@ PIPE_HEIGHT = 288
 BIRD_WIDTH = 38
 BIRD_HEIGHT = 24
 
+
 function PlayState:init()
     self.bird = Bird()
     self.pipePairs = {}
     self.timer = 0
-    self.score = 0
-
+    self.score = 0  
+    LEVEL_TIMER = 0
+    self.PIPE_DIRECTION_RANDOM = math.random(0,1)
+    self.PIPE_SPAWN_TIME = 5
     -- initialize our last recorded Y value for a gap placement to base other gaps off of
     self.lastY = -PIPE_HEIGHT + math.random(80) + 20
 end
 
 function PlayState:update(dt)
     -- update timer for pipe spawning
+    -- improve code readablity isolation of pause
     self.timer = self.timer + dt
-
+    LEVEL_TIMER = LEVEL_TIMER + dt
     -- spawn a new pipe pair every second and a half
-    if self.timer > 2 then
+
+    -- if LEVEL_TIMER is Above 15 and the score is above 10 it will start mixmatch the spawn time
+    if LEVEL_TIMER >  15 and self.score > 2 then
+        ---[[
+        if self.score > 2 then
+            self.PIPE_SPAWN_TIME = 3
+            if self.PIPE_DIRECTION_RANDOM == 0 then
+                BOOL_UP_PUBLIC = false
+                BOOL_DOWN_PUBLIC = true
+            else
+                BOOL_UP_PUBLIC = true
+                BOOL_DOWN_PUBLIC = false
+            end
+        end
+        --]]
+        -- Switch if it reaches 15 seconds
+        if self.PIPE_SPAWN_TIME == 2 then
+            self.PIPE_SPAWN_TIME = 5
+        elseif self.PIPE_SPAWN_TIME == 5 then
+            self.PIPE_SPAWN_TIME = 2
+        end
+
+        --RESET LEVEL_TIMER
+        LEVEL_TIMER = 0
+    end
+
+    if self.timer > self.PIPE_SPAWN_TIME then
         -- modify the last Y coordinate we placed so pipe gaps aren't too far apart
         -- no higher than 10 pixels below the top edge of the screen,
         -- and no lower than a gap length (90 pixels) from the bottom
-        local y = math.max(-PIPE_HEIGHT + 10, 
-            math.min(self.lastY + math.random(-20, 20), VIRTUAL_HEIGHT - math.random(10,90) - PIPE_HEIGHT))
+        if self.score <= 2 then
+        y = math.max(-PIPE_HEIGHT + 10, 
+            math.min(self.lastY + math.random(-20, 20), VIRTUAL_HEIGHT - 90 - PIPE_HEIGHT))
         self.lastY = y
+        elseif self.score > 2 and self.score <= 5 then
+        y = math.max(-PIPE_HEIGHT + 10, 
+            math.min(self.lastY + math.random(20, 50), VIRTUAL_HEIGHT - 90 - PIPE_HEIGHT))
+        self.lastY = y
+        elseif self.score > 5  and self.score <= 10 then
+        y = math.max(-PIPE_HEIGHT + 10, 
+            math.min(self.lastY + math.random(-50, -20), VIRTUAL_HEIGHT - 90 - PIPE_HEIGHT))
+        self.lastY = y
+        elseif self.score > 10 then
+        y = math.max(-PIPE_HEIGHT + 10, 
+            math.min(self.lastY + math.random(-20, 20), VIRTUAL_HEIGHT - 90 - PIPE_HEIGHT))
+        self.lastY = y
+        end
+
+       
 
         -- add a new pipe pair at the end of the screen at our new Y
         table.insert(self.pipePairs, PipePair(y))
@@ -46,16 +91,20 @@ function PlayState:update(dt)
         -- reset timer
         self.timer = 0
     end
-
+ 
     -- for every pair of pipes..
     for k, pair in pairs(self.pipePairs) do
         -- score a point if the pipe has gone past the bird to the left all the way
         -- be sure to ignore it if it's already been scored
         if not pair.scored then
+            
             if pair.x + PIPE_WIDTH < self.bird.x then
                 self.score = self.score + 1
                 pair.scored = true
                 sounds['score']:play()
+                self.PIPE_DIRECTION_RANDOM = math.random(0,1)
+            else
+               
             end
         end
 
@@ -79,7 +128,8 @@ function PlayState:update(dt)
             if self.bird:collides(pipe) then
                 sounds['explosion']:play()
                 sounds['hurt']:play()
-
+                BOOL_UP_PUBLIC = false
+                BOOL_DOWN_PUBLIC = false
                 gStateMachine:change('score', {
                     score = self.score
                 })
@@ -88,13 +138,15 @@ function PlayState:update(dt)
     end
 
     -- update bird based on gravity and input
-    self.bird:update(dt)
 
+    self.bird:update(dt)
+    
     -- reset if we get to the ground
     if self.bird.y > VIRTUAL_HEIGHT - 15 then
         sounds['explosion']:play()
         sounds['hurt']:play()
-
+        BOOL_UP_PUBLIC = false
+        BOOL_DOWN_PUBLIC = false
         gStateMachine:change('score', {
             score = self.score
         })
@@ -108,7 +160,23 @@ function PlayState:render()
 
     love.graphics.setFont(flappyFont)
     love.graphics.print('Score: ' .. tostring(self.score), 8, 8)
+    love.graphics.setFont(smallFont)
+    love.graphics.print('Generated Y for Pair: '.. tostring(self.lastY), VIRTUAL_WIDTH - 150, 8)
+    love.graphics.print('Timer: '.. tostring(LEVEL_TIMER), VIRTUAL_WIDTH - 150, 20)
+    ---[[
+    love.graphics.print('PIPE_Y: '.. tostring(PIPE_Y), VIRTUAL_WIDTH - 150, 30)
+    love.graphics.print('PIPE_UPPER_Y: '.. tostring(PIPE_UPPER_Y), VIRTUAL_WIDTH - 150, 40)
+    love.graphics.print('PIPE_LOWER_Y: '.. tostring(PIPE_LOWER_Y), VIRTUAL_WIDTH - 150, 50)
+    --]]
+    love.graphics.print('PIPE_SPAWN: '.. tostring(PIPE_SPAWN_TIME), VIRTUAL_WIDTH - 150, 60)
+    love.graphics.print('MAX: '.. tostring(-PIPE_HEIGHT + 10), VIRTUAL_WIDTH - 150, 70)
+    love.graphics.print('MIN: '.. tostring(VIRTUAL_HEIGHT - 90 - PIPE_HEIGHT), VIRTUAL_WIDTH - 150, 80)
+    
+    
 
+
+    
+    
     self.bird:render()
 end
 
