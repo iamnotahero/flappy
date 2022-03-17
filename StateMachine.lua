@@ -52,6 +52,7 @@ function StateMachine:change(stateName, enterParams)
 	assert(self.states[stateName]) -- state must exist!
 	self.current:exit()
 	self.current = self.states[stateName]()
+	self.currentStateName = self.states[stateName]
 	self.current:enter(enterParams)
 end
 
@@ -61,4 +62,11 @@ end
 
 function StateMachine:render()
 	self.current:render()
+end
+function StateMachine:is(stateName)
+    if self.currentStateName == self.states[stateName] then
+		return true
+	else
+		return false
+	end
 end

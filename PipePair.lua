@@ -15,8 +15,7 @@ local GAP_HEIGHT = 90
 PIPE_UPPER_Y = 0
 PIPE_LOWER_Y = 0
 PIPE_Y = 0
-BOOL_UP_PUBLIC = false
-BOOL_DOWN_PUBLIC = false
+
 function PipePair:init(y)
     -- flag to hold whether this pair has been scored (jumped through)
     self.scored = false
@@ -24,10 +23,11 @@ function PipePair:init(y)
     self.x = VIRTUAL_WIDTH + 32
     -- y value is for the topmost pipe; gap is a vertical shift of the second lower pipe
     self.y = y
-  
-    self.boolup = BOOL_UP_PUBLIC
-    self.booldown = BOOL_DOWN_PUBLIC
-
+    self.WILL_MOVE = false
+    self.boolup = false
+    self.booldown = false
+    self.PIPE_DIRECTION_RANDOM = math.random(0,1)
+    self.UP_DOWN_SPEED = 0.5
     -- instantiate two pipes that belong to this pair
     self.pipes = {
         ['upper'] = Pipe('top', self.y),
@@ -42,7 +42,6 @@ end
 function PipePair:update(dt)
     -- remove the pipe from the scene if it's beyond the left edge of the screen,
     -- else move it from right to left
-    PIPE_Y = self.y
     if self.y > -130 then
         self.boolup = false
         self.booldown = true
@@ -53,12 +52,14 @@ function PipePair:update(dt)
     end
     if self.x > -PIPE_WIDTH then
         self.x = self.x - PIPE_SPEED * dt
-        if self.boolup == true then
-            self.y = self.y + 1
-            
-        elseif self.booldown == true then
-            self.y = self.y - 1
-            
+        if self.WILL_MOVE == true then
+            if self.boolup == true then
+                self.y = self.y + self.UP_DOWN_SPEED
+                
+            elseif self.booldown == true then
+                self.y = self.y - self.UP_DOWN_SPEED
+                
+            end
         end
         self.pipes['upper'].y = self.y 
         self.pipes['lower'].y = self.y + PIPE_HEIGHT + GAP_HEIGHT
@@ -117,21 +118,6 @@ function PipePair:update(dt)
 
 
     for l, pipe in pairs(self.pipes) do  
-        PIPE_LOOP = pipe.y
-        --[[
-        if pipe.y < -250 then
-            boolup = false
-            booldown = true
-        elseif pipe.y > 250 then
-            booldown = false 
-            boolup = true 
-        end
-        if boolup == true then
-            pipe.y = pipe.y - 2
-        elseif booldown == true then
-            pipe.y = pipe.y + 2 
-        end
-        --]]
         pipe:update(dt)
     end
 

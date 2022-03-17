@@ -23,7 +23,6 @@ function PlayState:init()
     self.timer = 0
     self.score = 0  
     LEVEL_TIMER = 0
-    self.PIPE_DIRECTION_RANDOM = math.random(0,1)
     self.PIPE_SPAWN_TIME = 5
     -- initialize our last recorded Y value for a gap placement to base other gaps off of
     self.lastY = -PIPE_HEIGHT + math.random(80) + 20
@@ -41,13 +40,7 @@ function PlayState:update(dt)
         ---[[
         if self.score > 2 then
             self.PIPE_SPAWN_TIME = 3
-            if self.PIPE_DIRECTION_RANDOM == 0 then
-                BOOL_UP_PUBLIC = false
-                BOOL_DOWN_PUBLIC = true
-            else
-                BOOL_UP_PUBLIC = true
-                BOOL_DOWN_PUBLIC = false
-            end
+
         end
         --]]
         -- Switch if it reaches 15 seconds
@@ -102,9 +95,30 @@ function PlayState:update(dt)
                 self.score = self.score + 1
                 pair.scored = true
                 sounds['score']:play()
-                self.PIPE_DIRECTION_RANDOM = math.random(0,1)
             else
                
+            end
+        end
+
+        --change 
+        if self.score > 2 then
+            --add a can move var so it won't move before the score 5 no matter the location
+            if not pair.WILL_MOVE then
+                pair.WILL_MOVE = true
+                --randomize Direction tried kinda working
+                if self.score > 5 then
+                    pair.UP_DOWN_SPEED = 2
+                end
+                if pair.PIPE_DIRECTION_RANDOM == 0 then
+                    pair.boolup = true
+                    pair.booldown = false
+                else
+                    pair.boolup = false
+                    pair.booldown = true
+                end
+
+            else
+                
             end
         end
 
@@ -128,8 +142,6 @@ function PlayState:update(dt)
             if self.bird:collides(pipe) then
                 sounds['explosion']:play()
                 sounds['hurt']:play()
-                BOOL_UP_PUBLIC = false
-                BOOL_DOWN_PUBLIC = false
                 gStateMachine:change('score', {
                     score = self.score
                 })
@@ -145,8 +157,6 @@ function PlayState:update(dt)
     if self.bird.y > VIRTUAL_HEIGHT - 15 then
         sounds['explosion']:play()
         sounds['hurt']:play()
-        BOOL_UP_PUBLIC = false
-        BOOL_DOWN_PUBLIC = false
         gStateMachine:change('score', {
             score = self.score
         })
@@ -163,21 +173,26 @@ function PlayState:render()
     love.graphics.setFont(smallFont)
     love.graphics.print('Generated Y for Pair: '.. tostring(self.lastY), VIRTUAL_WIDTH - 150, 8)
     love.graphics.print('Timer: '.. tostring(LEVEL_TIMER), VIRTUAL_WIDTH - 150, 20)
-    ---[[
-    love.graphics.print('PIPE_Y: '.. tostring(PIPE_Y), VIRTUAL_WIDTH - 150, 30)
+    --[[
+    love.graphics.print('BOOL_DOWN: '.. tostring(booldown), VIRTUAL_WIDTH - 150, 30)
     love.graphics.print('PIPE_UPPER_Y: '.. tostring(PIPE_UPPER_Y), VIRTUAL_WIDTH - 150, 40)
     love.graphics.print('PIPE_LOWER_Y: '.. tostring(PIPE_LOWER_Y), VIRTUAL_WIDTH - 150, 50)
     --]]
-    love.graphics.print('PIPE_SPAWN: '.. tostring(PIPE_SPAWN_TIME), VIRTUAL_WIDTH - 150, 60)
-    love.graphics.print('MAX: '.. tostring(-PIPE_HEIGHT + 10), VIRTUAL_WIDTH - 150, 70)
+    love.graphics.print('PIPE_SPAWN: '.. tostring(self.PIPE_SPAWN_TIME), VIRTUAL_WIDTH - 150, 60)
+    love.graphics.print('IS IN PLAY STATE? '.. tostring(gStateMachine:is('play')), VIRTUAL_WIDTH - 150, 70)
     love.graphics.print('MIN: '.. tostring(VIRTUAL_HEIGHT - 90 - PIPE_HEIGHT), VIRTUAL_WIDTH - 150, 80)
-    
-    
+
 
 
     
     
     self.bird:render()
+    if IS_PAUSED == true then
+        love.graphics.setFont(mediumFont)
+        love.graphics.printf('Game Pause', 0, 100, VIRTUAL_WIDTH, 'center')
+        love.graphics.setFont(smallFont)
+        love.graphics.printf('Press V again to unpause', 0, 120, VIRTUAL_WIDTH, 'center')
+    end
 end
 
 --[[

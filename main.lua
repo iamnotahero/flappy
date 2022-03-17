@@ -128,10 +128,13 @@ function love.keypressed(key)
 
     if key == 'escape' then
         love.event.quit()
-    elseif key == 'v' and IS_PAUSED == false then
-        IS_PAUSED = true
-    elseif key == 'v' and IS_PAUSED == true then
-        IS_PAUSED = false
+    end
+    if gStateMachine:is('play') then
+        if key == 'v' and IS_PAUSED == false then
+            IS_PAUSED = true
+        elseif key == 'v' and IS_PAUSED == true then
+            IS_PAUSED = false
+        end
     end
 end
 
