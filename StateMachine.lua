@@ -63,6 +63,8 @@ end
 function StateMachine:render()
 	self.current:render()
 end
+
+-- added validation for what state is current
 function StateMachine:is(stateName)
     if self.currentStateName == self.states[stateName] then
 		return true

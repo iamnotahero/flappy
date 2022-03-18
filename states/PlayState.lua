@@ -8,7 +8,6 @@
     we then go back to the main menu.
 ]]
 PlayState = Class{__includes = BaseState}
-require 'PipePair'
 PIPE_SPEED = 60
 PIPE_WIDTH = 70
 PIPE_HEIGHT = 288
@@ -16,68 +15,83 @@ PIPE_HEIGHT = 288
 BIRD_WIDTH = 38
 BIRD_HEIGHT = 24
 
-
+--debug
+TEST_SPEED = 0
+TEST_GAP = 0
 function PlayState:init()
     self.bird = Bird()
     self.pipePairs = {}
     self.timer = 0
     self.score = 0  
-    LEVEL_TIMER = 0
+    self.LEVEL_TIMER = 0
+    self.PIPE_INTERVAL = 0
     self.PIPE_SPAWN_TIME = 5
+    self.LEVEL1_TIME = 2 --changable
+    self.LEVEL2_TIME = 5  --changable
+    self.LEVEL3_TIME = 10  --changable
+    self.ENDTIME = 15  --changable
+    self.PIPE_INTERVAL_MAX = 0
     -- initialize our last recorded Y value for a gap placement to base other gaps off of
     self.lastY = -PIPE_HEIGHT + math.random(80) + 20
 end
 
 function PlayState:update(dt)
     -- update timer for pipe spawning
-    -- improve code readablity isolation of pause
     self.timer = self.timer + dt
-    LEVEL_TIMER = LEVEL_TIMER + dt
-    -- spawn a new pipe pair every second and a half
-
-    -- if LEVEL_TIMER is Above 15 and the score is above 10 it will start mixmatch the spawn time
-    if LEVEL_TIMER >  15 and self.score > 2 then
-        ---[[
-        if self.score > 2 then
-            self.PIPE_SPAWN_TIME = 3
-
-        end
-        --]]
-        -- Switch if it reaches 15 seconds
-        if self.PIPE_SPAWN_TIME == 2 then
-            self.PIPE_SPAWN_TIME = 5
-        elseif self.PIPE_SPAWN_TIME == 5 then
-            self.PIPE_SPAWN_TIME = 2
-        end
-
-        --RESET LEVEL_TIMER
-        LEVEL_TIMER = 0
+    self.PIPE_INTERVAL_MAX = ((self.LEVEL1_TIME + self.LEVEL2_TIME + self.LEVEL3_TIME)/3)-self.PIPE_SPAWN_TIME
+    -- if score above 0 then start counting 
+    if self.score > 0 then
+        self.LEVEL_TIMER = self.LEVEL_TIMER + dt
+        self.PIPE_INTERVAL = self.PIPE_INTERVAL + dt
     end
 
+    --LEVEL LOOP
+    if self.LEVEL_TIMER < self.LEVEL1_TIME then
+        self.PIPE_SPAWN_TIME = 2
+    elseif self.LEVEL_TIMER > self.LEVEL1_TIME  and self.LEVEL_TIMER < self.LEVEL2_TIME then  
+        if self.PIPE_INTERVAL > self.PIPE_INTERVAL_MAX then
+            if self.PIPE_SPAWN_TIME == 2 then
+                self.PIPE_SPAWN_TIME = 3
+            elseif self.PIPE_SPAWN_TIME == 3 then
+                self.PIPE_SPAWN_TIME = 5
+            elseif self.PIPE_SPAWN_TIME == 5 then
+                self.PIPE_SPAWN_TIME = 3
+            end
+            --RESET INTERVAL
+            self.PIPE_INTERVAL = 0
+        end
+    elseif self.LEVEL_TIMER > self.LEVEL2_TIME and self.LEVEL_TIMER < self.LEVEL3_TIME then
+        if self.PIPE_INTERVAL > self.PIPE_INTERVAL_MAX then
+            --Changes the SPAWN_TIME TO trigger loop
+            if self.PIPE_SPAWN_TIME == 3 then
+                self.PIPE_SPAWN_TIME = 4
+            elseif self.PIPE_SPAWN_TIME == 4 then
+                self.PIPE_SPAWN_TIME = 5
+            elseif self.PIPE_SPAWN_TIME == 5 then
+                self.PIPE_SPAWN_TIME = 4
+            end
+            --RESET INTERVAL
+            self.PIPE_INTERVAL = 0
+        end
+    elseif self.LEVEL_TIMER > self.LEVEL3_TIME and self.LEVEL_TIMER < self.ENDTIME then
+        if self.PIPE_INTERVAL > self.PIPE_INTERVAL_MAX then
+            --Starts randomizing the spawn time above level 3
+            self.PIPE_SPAWN_TIME = randomFloat(2.5,4,3)
+            --RESET INTERVAL
+            self.PIPE_INTERVAL = 0
+        end
+    elseif self.LEVEL_TIMER > self.ENDTIME then
+        self.LEVEL_TIMER = 0
+    end
+
+    -- spawn a new pipe pair every second and a half -- changed to a variable
     if self.timer > self.PIPE_SPAWN_TIME then
         -- modify the last Y coordinate we placed so pipe gaps aren't too far apart
         -- no higher than 10 pixels below the top edge of the screen,
         -- and no lower than a gap length (90 pixels) from the bottom
-        if self.score <= 2 then
         y = math.max(-PIPE_HEIGHT + 10, 
-            math.min(self.lastY + math.random(-20, 20), VIRTUAL_HEIGHT - 90 - PIPE_HEIGHT))
+        math.min(self.lastY + math.random(-20, 20), VIRTUAL_HEIGHT - 90 - PIPE_HEIGHT))
         self.lastY = y
-        elseif self.score > 2 and self.score <= 5 then
-        y = math.max(-PIPE_HEIGHT + 10, 
-            math.min(self.lastY + math.random(20, 50), VIRTUAL_HEIGHT - 90 - PIPE_HEIGHT))
-        self.lastY = y
-        elseif self.score > 5  and self.score <= 10 then
-        y = math.max(-PIPE_HEIGHT + 10, 
-            math.min(self.lastY + math.random(-50, -20), VIRTUAL_HEIGHT - 90 - PIPE_HEIGHT))
-        self.lastY = y
-        elseif self.score > 10 then
-        y = math.max(-PIPE_HEIGHT + 10, 
-            math.min(self.lastY + math.random(-20, 20), VIRTUAL_HEIGHT - 90 - PIPE_HEIGHT))
-        self.lastY = y
-        end
-
-       
-
         -- add a new pipe pair at the end of the screen at our new Y
         table.insert(self.pipePairs, PipePair(y))
 
@@ -89,38 +103,54 @@ function PlayState:update(dt)
     for k, pair in pairs(self.pipePairs) do
         -- score a point if the pipe has gone past the bird to the left all the way
         -- be sure to ignore it if it's already been scored
-        if not pair.scored then
-            
+       -- remove after
+        --TEST_GAP = pair.GAP_HEIGHT --remove after
+        TEST_DIRECTION = pair.PIPE_DIRECTION_RANDOM
+        if not pair.scored then 
             if pair.x + PIPE_WIDTH < self.bird.x then
                 self.score = self.score + 1
                 pair.scored = true
                 sounds['score']:play()
-            else
-               
+                --added game play loop variable...
+                self.LEVEL_TIMER = self.LEVEL_TIMER - (self.LEVEL_TIMER * (1/self.PIPE_SPAWN_TIME))
+            elseif pair.x + PIPE_WIDTH > self.bird.x + 100 then
+                -- starts moving the pipe at level 2
+                if self.LEVEL_TIMER > self.LEVEL2_TIME then
+                    --FLags wthe will_move to true 
+                    if not pair.allowmove then
+                        --starts upping the up and down speed of pipe at level 3
+                        if self.LEVEL_TIMER > self.LEVEL3_TIME then
+                            -- Make it faster 
+                            pair.UP_DOWN_SPEED = randomFloat(0.5, 1, 3)
+                            TEST_SPEED = pair.UP_DOWN_SPEED 
+                        end
+                        --Randomized in the Pipepair
+                        if pair.PIPE_DIRECTION_RANDOM == 0 then
+                            pair.boolup = false
+                            pair.booldown = true
+                        elseif pair.PIPE_DIRECTION_RANDOM == 1 then
+                            pair.boolup = true
+                            pair.booldown = false
+                        end
+                    pair.allowmove = true
+                    else    
+
+                    end
+                end     
+            end
+        end
+        -- Starts randomizing the gap height at level 1
+
+        --[[
+        if not pair.GAP_CHANGED then
+            if pair.x + PIPE_WIDTH > VIRTUAL_WIDTH then
+                pair.GAP_HEIGHT = math.random(90,100)
+                pair.GAP_CHANGED = true
             end
         end
 
-        --change 
-        if self.score > 2 then
-            --add a can move var so it won't move before the score 5 no matter the location
-            if not pair.WILL_MOVE then
-                pair.WILL_MOVE = true
-                --randomize Direction tried kinda working
-                if self.score > 5 then
-                    pair.UP_DOWN_SPEED = 2
-                end
-                if pair.PIPE_DIRECTION_RANDOM == 0 then
-                    pair.boolup = true
-                    pair.booldown = false
-                else
-                    pair.boolup = false
-                    pair.booldown = true
-                end
+        --]]
 
-            else
-                
-            end
-        end
 
         -- update position of pair
         pair:update(dt)
@@ -170,22 +200,23 @@ function PlayState:render()
 
     love.graphics.setFont(flappyFont)
     love.graphics.print('Score: ' .. tostring(self.score), 8, 8)
+   ---[[
     love.graphics.setFont(smallFont)
     love.graphics.print('Generated Y for Pair: '.. tostring(self.lastY), VIRTUAL_WIDTH - 150, 8)
-    love.graphics.print('Timer: '.. tostring(LEVEL_TIMER), VIRTUAL_WIDTH - 150, 20)
-    --[[
-    love.graphics.print('BOOL_DOWN: '.. tostring(booldown), VIRTUAL_WIDTH - 150, 30)
-    love.graphics.print('PIPE_UPPER_Y: '.. tostring(PIPE_UPPER_Y), VIRTUAL_WIDTH - 150, 40)
-    love.graphics.print('PIPE_LOWER_Y: '.. tostring(PIPE_LOWER_Y), VIRTUAL_WIDTH - 150, 50)
-    --]]
+    love.graphics.print('Timer: '.. tostring(self.LEVEL_TIMER), VIRTUAL_WIDTH - 150, 20)
+  
+    love.graphics.print('INTERVAL : '.. tostring(self.PIPE_INTERVAL), VIRTUAL_WIDTH - 150, 30)
+    
+    love.graphics.print('INTERVAL_MAX: '.. tostring(self.PIPE_INTERVAL_MAX), VIRTUAL_WIDTH - 150, 40)
+ 
+    love.graphics.print('PIPE_SPEED: '.. tostring(TEST_SPEED), VIRTUAL_WIDTH - 150, 50)
+
     love.graphics.print('PIPE_SPAWN: '.. tostring(self.PIPE_SPAWN_TIME), VIRTUAL_WIDTH - 150, 60)
-    love.graphics.print('IS IN PLAY STATE? '.. tostring(gStateMachine:is('play')), VIRTUAL_WIDTH - 150, 70)
-    love.graphics.print('MIN: '.. tostring(VIRTUAL_HEIGHT - 90 - PIPE_HEIGHT), VIRTUAL_WIDTH - 150, 80)
-
-
-
-    
-    
+    love.graphics.print('PIPE DIRECTION '.. tostring(TEST_DIRECTION), VIRTUAL_WIDTH - 150, 70)
+    love.graphics.print('GAP HEIGHT: '.. tostring(TEST_GAP), VIRTUAL_WIDTH - 150, 80)
+    love.graphics.print('MAX: '.. tostring(-PIPE_HEIGHT + 10), VIRTUAL_WIDTH - 150, 90)
+    love.graphics.print('MIN: '.. tostring(VIRTUAL_HEIGHT - 90 - PIPE_HEIGHT), VIRTUAL_WIDTH - 150, 100)
+    --]] 
     self.bird:render()
     if IS_PAUSED == true then
         love.graphics.setFont(mediumFont)

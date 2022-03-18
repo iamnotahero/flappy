@@ -86,7 +86,7 @@ function love.load()
         ['explosion'] = love.audio.newSource('explosion.wav', 'static'),
         ['hurt'] = love.audio.newSource('hurt.wav', 'static'),
         ['score'] = love.audio.newSource('score.wav', 'static'),
-
+        ['pause'] = love.audio.newSource('pause.wav', 'static'),
         -- https://freesound.org/people/xsgianni/sounds/388079/
         ['music'] = love.audio.newSource('marios_way.mp3', 'static')
     }
@@ -132,8 +132,11 @@ function love.keypressed(key)
     if gStateMachine:is('play') then
         if key == 'v' and IS_PAUSED == false then
             IS_PAUSED = true
+            sounds['pause']:play()
+            sounds['music']:pause()
         elseif key == 'v' and IS_PAUSED == true then
             IS_PAUSED = false
+            sounds['music']:play()
         end
     end
 end
@@ -161,6 +164,26 @@ function love.mouse.wasPressed(button)
     return love.mouse.buttonsPressed[button]
 end
 
+function randomFloat(min, max, precision)
+	-- Generate a random floating point number between min and max
+	--[[1]] local range = max - min
+	--[[2]] local offset = range * math.random()
+	--[[3]] local unrounded = min + offset
+
+	-- Return unrounded number if precision isn't given
+	if not precision then
+		return unrounded
+	end
+
+	-- Round number to precision and return
+	--[[1]] local powerOfTen = 10 ^ precision
+	local n
+	--[[2]] n = unrounded * powerOfTen
+	--[[3]] n = n + 0.5
+	--[[4]] n = math.floor(n)
+	--[[5]] n = n / powerOfTen
+	return n
+end
 function love.update(dt)
     -- scroll our background and ground, looping back to 0 after a certain amount
     if IS_PAUSED == false then

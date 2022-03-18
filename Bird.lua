@@ -33,7 +33,7 @@ function Bird:collides(pipe)
     -- both offsets are used to shrink the bounding box to give the player
     -- a little bit of leeway with the collision
 
-    --[[
+    ---[[
    if (self.x + 2) + (self.width - 4) >= pipe.x and self.x + 2 <= pipe.x + PIPE_WIDTH then
         if (self.y + 2) + (self.height - 4) >= pipe.y and self.y + 2 <= pipe.y + PIPE_HEIGHT then
             return true
@@ -46,7 +46,7 @@ function Bird:collides(pipe)
 end
 
 function Bird:update(dt)
-    --[[
+    ---[[
     self.dy = self.dy + GRAVITY * dt
 
     -- burst of anti-gravity when space or left mouse are pressed
